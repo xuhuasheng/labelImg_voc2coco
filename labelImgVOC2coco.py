@@ -42,8 +42,7 @@ categories = [
 
 # coco 存储格式的字典
 coco_json = {
-    "images":images, 
-    "type": "instances", 
+    "images":images,  
     "annotations": annotations,                
     "categories": categories
     }
@@ -115,7 +114,7 @@ def labelImg_voc2coco():
         for obj in get(root, 'object'):
             # annotation: category_id
             category = get_and_check(obj, 'name', 1).text
-            if category not in categories:
+            if category not in PRE_DEFINE_CATEGORIES:
                 new_id = len(PRE_DEFINE_CATEGORIES) + 1
                 PRE_DEFINE_CATEGORIES[category] = new_id
             category_id = PRE_DEFINE_CATEGORIES[category]
@@ -150,7 +149,7 @@ def labelImg_voc2coco():
     print("Num of categories: %s" % len(categories))
     print("Num of images: %s" % len(images))
     print("Num of annotations: %s" % len(annotations))
-
+    print(PRE_DEFINE_CATEGORIES)
     # coco格式字典写入json
     with open(COCO_JSON_FILE, 'w') as outfile:  
         outfile.write(json.dumps(coco_json))
