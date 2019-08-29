@@ -133,6 +133,21 @@ def labelImg_voc2coco():
             bbox_width = abs(xmax - xmin)
             bbox_height = abs(ymax - ymin)
 
+            # annotation: segmentation
+            seg = []
+            #left_top
+            seg.append(xmin)
+            seg.append(ymin)
+            #left_bottom
+            seg.append(xmin)
+            seg.append(ymin + bbox_height)
+            #right_bottom
+            seg.append(xmin + bbox_width)
+            seg.append(ymin + bbox_height)
+            #right_top
+            seg.append(xmin + bbox_width)
+            seg.append(ymin)
+
             annotation = {
                 'id': bbox_id,
                 'image_id': image_id,
@@ -140,7 +155,7 @@ def labelImg_voc2coco():
                 'area': bbox_width * bbox_height, 
                 'bbox':[xmin, ymin, bbox_width, bbox_height],
                 'iscrowd': 0, 
-                'segmentation': []
+                'segmentation': seg
                 }
 
             coco_json['annotations'].append(annotation)
