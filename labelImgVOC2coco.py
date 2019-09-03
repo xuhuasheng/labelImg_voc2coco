@@ -1,20 +1,23 @@
+# =========================================================
+# @purpose: 把labelImg标注的voc格式数据转换成coco格式数据
+# @date：   2019/8
+# @version: v1.0
+# @author： Xu Huasheng
+# @github： https://github.com/xuhuasheng/labelImg_voc2coco
+# ==========================================================
+
 import json
 import os, sys
 import xml.etree.ElementTree as ET
 
-PROJECT_DIR   =  '/home/watson/Documents/voc2coco/'
-
-# DATA_DIR       = PROJECT_DIR + 'coco_train2014/' # pic save path
+PROJECT_DIR   =  '/home/watson/Documents/aug_THzDatasets/'
 ANN_DIR        = PROJECT_DIR + 'annotations/'
-COCO_JSON_FILE = PROJECT_DIR + 'annotations/instances_train2014.json'  # json save path
 
-VOC_XMLS_DIR = '/home/watson/Documents/THzDataset/annotations/train_xml/'
-THZ_IMGS_DIR = '/home/watson/Documents/THzDataset/train_img_rgb/'
+#==================== 需要修改 train or val ========================
+COCO_JSON_FILE = ANN_DIR + 'THz_train.json'  # json save path
+VOC_XMLS_DIR = '/home/watson/Documents/aug_THzDatasets/train_xmls/'
+#==================================================================
 
-# if not os.path.exists(PROJECT_DIR): 
-#     os.makedirs(PROJECT_DIR)
-# if not os.path.exists(DATA_DIR):
-#     os.makedirs(DATA_DIR)
 if not os.path.exists(ANN_DIR):
     os.makedirs(ANN_DIR)
 
@@ -46,6 +49,7 @@ coco_json = {
     "annotations": annotations,                
     "categories": categories
     }
+
 
 def get(root, name):
     vars = root.findall(name)
@@ -87,7 +91,8 @@ def labelImg_voc2coco():
         root = tree.getroot()         # 获得树的根节点
         
         # image: file_name
-        filename = get_filename(get_and_check(root, 'filename', 1).text) + '.jpg'
+        filename = get_filename(get_and_check(root, 'filename', 1).text) + '.jpg' # 读xml文件里的文件名
+        # filename = xml_fileName                                                 # 读文件名
         
         # image: id
         image_id = image_id + 1
@@ -124,8 +129,8 @@ def labelImg_voc2coco():
 
             # annotation: bbox
             bndbox = get_and_check(obj, 'bndbox', 1)
-            xmin = int(get_and_check(bndbox, 'xmin', 1).text) - 1
-            ymin = int(get_and_check(bndbox, 'ymin', 1).text) - 1
+            xmin = int(get_and_check(bndbox, 'xmin', 1).text)
+            ymin = int(get_and_check(bndbox, 'ymin', 1).text)
             xmax = int(get_and_check(bndbox, 'xmax', 1).text)
             ymax = int(get_and_check(bndbox, 'ymax', 1).text)
             assert(xmax > xmin)
@@ -135,18 +140,18 @@ def labelImg_voc2coco():
 
             # annotation: segmentation
             seg = []
-            #left_top
-            seg.append(xmin)
-            seg.append(ymin)
-            #left_bottom
-            seg.append(xmin)
-            seg.append(ymin + bbox_height)
-            #right_bottom
-            seg.append(xmin + bbox_width)
-            seg.append(ymin + bbox_height)
-            #right_top
-            seg.append(xmin + bbox_width)
-            seg.append(ymin)
+            # #left_top
+            # seg.append(xmin)
+            # seg.append(ymin)
+            # #left_bottom
+            # seg.append(xmin)
+            # seg.append(ymin + bbox_height)
+            # #right_bottom
+            # seg.append(xmin + bbox_width)
+            # seg.append(ymin + bbox_height)
+            # #right_top
+            # seg.append(xmin + bbox_width)
+            # seg.append(ymin)
 
             annotation = {
                 'id': bbox_id,
