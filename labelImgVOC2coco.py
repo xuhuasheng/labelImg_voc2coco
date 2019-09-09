@@ -10,12 +10,12 @@ import json
 import os, sys
 import xml.etree.ElementTree as ET
 
-PROJECT_DIR   =  '/home/watson/Documents/aug_THzDatasets/'
+PROJECT_DIR   =  '/home/watson/Documents/mask_THzDatasets/'
 ANN_DIR        = PROJECT_DIR + 'annotations/'
 
 #==================== 需要修改 train or val ========================
-COCO_JSON_FILE = ANN_DIR + 'THz_train.json'  # json save path
-VOC_XMLS_DIR = '/home/watson/Documents/aug_THzDatasets/train_xmls/'
+COCO_JSON_FILE = ANN_DIR + 'mask_THz_val.json'  # json save path
+VOC_XMLS_DIR = '/home/watson/Documents/mask_THzDatasets/val_xmls/'
 #==================================================================
 
 if not os.path.exists(ANN_DIR):
@@ -51,27 +51,11 @@ coco_json = {
     }
 
 
-def get(root, name):
-    vars = root.findall(name)
-    return vars
 
-def get_and_check(root, name, length):
-    vars = root.findall(name)
-    if len(vars) == 0:
-        raise NotImplementedError('Can not find %s in %s.'%(name, root.tag))
-    if length > 0 and len(vars) != length:
-        raise NotImplementedError('The size of %s is supposed to be %d, but is %d.'%(name, length, len(vars)))
-    if length == 1:
-        vars = vars[0]
-    return vars
 
-def get_filename(filename):
-    try:
-        filename = os.path.splitext(filename)[0] # 分离文件名与扩展名；默认返回(fname,fextension)元组，可做分片操作
-        return filename # 返回文件名
-    except:
-        raise NotImplementedError('Filename %s is supposed to be an integer.'%(filename))
-
+'''
+purpose: voc 的xml 转 coco 的json
+'''
 def labelImg_voc2coco():
     voc_xmls_list = os.listdir(VOC_XMLS_DIR)
     converted_num = 0
@@ -91,16 +75,16 @@ def labelImg_voc2coco():
         root = tree.getroot()         # 获得树的根节点
         
         # image: file_name
-        filename = get_filename(get_and_check(root, 'filename', 1).text) + '.jpg' # 读xml文件里的文件名
+        filename = get_element(root, 'filename').text.split('.')[0] + '.jpg' # 读xml文件里的文件名
         # filename = xml_fileName                                                 # 读文件名
         
         # image: id
         image_id = image_id + 1
         
         # image: width & height
-        size = get_and_check(root, 'size', 1)
-        img_width = int(get_and_check(size, 'width', 1).text)
-        img_height = int(get_and_check(size, 'height', 1).text)
+        size = get_element(root, 'size')
+        img_width = int(get_element(size, 'width').text)
+        img_height = int(get_element(size, 'height').text)
 
         # images
         image = {
@@ -113,12 +97,9 @@ def labelImg_voc2coco():
         coco_json['images'].append(image)
 
 
-        ## Cruuently we do not support segmentation
-        #  segmented = get_and_check(root, 'segmented', 1).text
-        #  assert segmented == '0'
-        for obj in get(root, 'object'):
+        for obj in get_elements(root, 'object'):
             # annotation: category_id
-            category = get_and_check(obj, 'name', 1).text
+            category = get_element(obj, 'name').text
             if category not in PRE_DEFINE_CATEGORIES:
                 new_id = len(PRE_DEFINE_CATEGORIES) + 1
                 PRE_DEFINE_CATEGORIES[category] = new_id
@@ -128,39 +109,27 @@ def labelImg_voc2coco():
             bbox_id += 1
 
             # annotation: bbox
-            bndbox = get_and_check(obj, 'bndbox', 1)
-            xmin = int(get_and_check(bndbox, 'xmin', 1).text)
-            ymin = int(get_and_check(bndbox, 'ymin', 1).text)
-            xmax = int(get_and_check(bndbox, 'xmax', 1).text)
-            ymax = int(get_and_check(bndbox, 'ymax', 1).text)
+            bndbox = get_element(obj, 'bndbox')
+            xmin = int(get_element(bndbox, 'xmin').text)
+            ymin = int(get_element(bndbox, 'ymin').text)
+            xmax = int(get_element(bndbox, 'xmax').text)
+            ymax = int(get_element(bndbox, 'ymax').text)
             assert(xmax > xmin)
             assert(ymax > ymin)
             bbox_width = abs(xmax - xmin)
             bbox_height = abs(ymax - ymin)
 
             # annotation: segmentation
-            seg = []
-            # #left_top
-            # seg.append(xmin)
-            # seg.append(ymin)
-            # #left_bottom
-            # seg.append(xmin)
-            # seg.append(ymin + bbox_height)
-            # #right_bottom
-            # seg.append(xmin + bbox_width)
-            # seg.append(ymin + bbox_height)
-            # #right_top
-            # seg.append(xmin + bbox_width)
-            # seg.append(ymin)
+            seg = list(eval(get_element(obj, 'segmentation').text))
 
             annotation = {
                 'id': bbox_id,
                 'image_id': image_id,
                 'category_id': category_id,
+                'segmentation': [seg],
                 'area': bbox_width * bbox_height, 
                 'bbox':[xmin, ymin, bbox_width, bbox_height],
-                'iscrowd': 0, 
-                'segmentation': seg
+                'iscrowd': 0
                 }
 
             coco_json['annotations'].append(annotation)
@@ -173,6 +142,29 @@ def labelImg_voc2coco():
     # coco格式字典写入json
     with open(COCO_JSON_FILE, 'w') as outfile:  
         outfile.write(json.dumps(coco_json))
+
+'''
+input：
+    @root: 根节点  
+    @childElementName: 字节点tag名称
+output：
+    @elements:根节点下所有符合的子元素对象    
+''' 
+def get_elements(root, childElementName):
+    elements = root.findall(childElementName)
+    return elements
+
+
+'''
+input：
+    @root: 根节点  
+    @childElementName: 字节点tag名称
+output：
+    @elements:根节点下第一个符合的子元素对象    
+''' 
+def get_element(root, childElementName):
+    element = root.find(childElementName)
+    return element
 
 
 if __name__ == '__main__':
